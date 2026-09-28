@@ -1,0 +1,8 @@
+streamlit
+osmnx
+networkx
+pandas
+openpyxl
+pydeck
+numpy
+quimb
