@@ -222,7 +222,7 @@ if saved is not None and saved['request_key'] == request_key:
                 float(middle_node["x"]),
                 float(middle_node["y"]),
             ],
-            "label": f"Route score: {rating:.1f}/10",
+            "label": f"Safety score: {rating:.1f}/10",
         }],
         get_position="position",
         get_text="label",
