@@ -2,6 +2,7 @@
 from pathlib import Path
 
 import networkx as nx
+import numpy as np
 import osmnx as ox
 import pandas as pd
 import pydeck as pdk
@@ -11,10 +12,12 @@ from route_core import nearest_node
 from segment_conditions import load_excel_conditions
 from tensor_route_solver import build_corridor, solve_tensor_network
 
-GRAPH_PATH = Path(__file__).with_name("wits_walk_10km.graphml")
+GRAPH_PATH = Path(__file__).with_name("wits_walk_3km.graphml")
 ADDRESS_PATH = GRAPH_PATH.with_name("wits_map_data_10km.xlsx")
 EXCEL_PATH = GRAPH_PATH.with_name("wits_segment_conditions.xlsx")
 MAX_DETOUR_PCT = 50
+WITS_MAIN = (-26.1928, 28.0303)
+MAP_RADIUS_KM = 3.0
 
 addresses = pd.read_excel(
     ADDRESS_PATH,
@@ -22,7 +25,16 @@ addresses = pd.read_excel(
     header=4,
 ).dropna(subset=["House number", "Street", "Latitude", "Longitude"])
 
-addresses = addresses.reset_index(drop=True)
+# Only offer addresses covered by the smaller walking map.
+lat = np.radians(addresses["Latitude"].astype(float))
+lon = np.radians(addresses["Longitude"].astype(float))
+center_lat, center_lon = np.radians(WITS_MAIN)
+a = (
+    np.sin((lat - center_lat) / 2) ** 2
+    + np.cos(center_lat) * np.cos(lat) * np.sin((lon - center_lon) / 2) ** 2
+)
+distance_km = 2 * 6371.0088 * np.arcsin(np.minimum(1, np.sqrt(a)))
+addresses = addresses.loc[distance_km <= MAP_RADIUS_KM].reset_index(drop=True)
 
 def address_label(i):
     row = addresses.iloc[i]
@@ -61,15 +73,11 @@ start_lon = float(addresses.iloc[start_i]["Longitude"])
 end_lat = float(addresses.iloc[end_i]["Latitude"])
 end_lon = float(addresses.iloc[end_i]["Longitude"])
 
-@st.cache_resource(show_spinner='Preparing walking map and street conditions...')
+@st.cache_resource(max_entries=1, show_spinner='Preparing walking map and street conditions...')
 def load_graph_with_excel_conditions(excel_mtime_ns):
     # The workbook modification time invalidates this cache after a saved edit.
-    graph = load_graph().copy()
+    graph = ox.io.load_graphml(GRAPH_PATH)
     return load_excel_conditions(graph, EXCEL_PATH)
-
-@st.cache_resource(show_spinner='Grabbing your safe route...')
-def load_graph():
-    return ox.io.load_graphml(GRAPH_PATH)
 
 def line_data(graph, route):
     return pd.DataFrame([
