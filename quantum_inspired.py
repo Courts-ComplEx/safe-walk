@@ -1,0 +1,175 @@
+"""Quantum-inspired evolutionary search over a compact real-map route network.
+
+This is a classical algorithm: a probability amplitude (angle) is maintained for
+each binary macro-edge, candidate bitstrings are sampled, and the angles are
+rotated toward the best valid route. It does not run on a quantum computer.
+"""
+
+from __future__ import annotations
+
+from dataclasses import dataclass
+from itertools import islice
+from math import pi
+
+import networkx as nx
+import numpy as np
+
+from route_core import route_profile, scored_digraph
+
+
+@dataclass
+class Corridor:
+    scored: nx.DiGraph
+    source: int
+    target: int
+    edges: list[dict]
+    seeds: list[tuple[int, ...]]
+    shortest_m: float
+
+
+def build_corridor(graph, source, target, *, max_edges=14, search_paths=100):
+    """Compress a few distinct mapped paths into binary street-chain choices."""
+    scored = scored_digraph(graph)
+    shortest_m = nx.shortest_path_length(graph, source, target, weight="length")
+    generator = nx.shortest_simple_paths(scored, source, target, weight="score")
+    paths = []
+    edge_sets = []
+    for path in islice(generator, search_paths):
+        selected = set(zip(path, path[1:]))
+        if not edge_sets or all(len(selected & old) / len(selected | old) < 0.9 for old in edge_sets):
+            paths.append(path)
+            edge_sets.append(selected)
+        if len(paths) == 3:
+            break
+    if not paths:
+        raise nx.NetworkXNoPath("No walking route found")
+
+    # Keep the largest path set that fits the small binary experiment.
+    while paths:
+        union = nx.DiGraph()
+        for path in paths:
+            union.add_edges_from(zip(path, path[1:]))
+        junctions = {
+            node for node in union
+            if node in {source, target} or union.in_degree(node) != 1 or union.out_degree(node) != 1
+        }
+        chains = []
+        elementary_to_chain = {}
+        for start in junctions:
+            for successor in union.successors(start):
+                chain = [start, successor]
+                while chain[-1] not in junctions:
+                    chain.append(next(iter(union.successors(chain[-1]))))
+                chain_id = len(chains)
+                for pair in zip(chain, chain[1:]):
+                    elementary_to_chain[pair] = chain_id
+                chains.append({
+                    "start": start,
+                    "end": chain[-1],
+                    "nodes": chain,
+                    "score": sum(scored[u][v]["score"] for u, v in zip(chain, chain[1:])),
+                })
+        if len(chains) <= max_edges:
+            seeds = []
+            for path in paths:
+                bits = [0] * len(chains)
+                for pair in zip(path, path[1:]):
+                    bits[elementary_to_chain[pair]] = 1
+                seeds.append(tuple(bits))
+            return Corridor(scored, source, target, chains, seeds, shortest_m)
+        paths.pop()
+        edge_sets.pop()
+    raise ValueError("Could not build a compact corridor")
+
+
+def decode_route(corridor, bits):
+    """Expand a selected set of macro-edges; reject branches and disconnected loops."""
+    selected = [i for i, bit in enumerate(bits) if bit]
+    outgoing = {}
+    for i in selected:
+        start = corridor.edges[i]["start"]
+        if start in outgoing:
+            return None
+        outgoing[start] = i
+    route = [corridor.source]
+    used = set()
+    current = corridor.source
+    while current != corridor.target:
+        if current not in outgoing:
+            return None
+        edge_id = outgoing[current]
+        if edge_id in used:
+            return None
+        used.add(edge_id)
+        chain = corridor.edges[edge_id]["nodes"]
+        route.extend(chain[1:])
+        current = chain[-1]
+        if len(route) > len(corridor.scored):
+            return None
+    if len(used) != len(selected) or len(route) != len(set(route)):
+        return None
+    return route
+
+
+def assess(corridor, bits, *, max_unlit_m, max_detour_pct, avoid_unknown):
+    route = decode_route(corridor, bits)
+    if route is None:
+        return None
+    profile = route_profile(corridor.scored, route)
+    allowed_m = corridor.shortest_m * (1 + max_detour_pct / 100)
+    if profile["distance_m"] > allowed_m + 0.1:
+        return None
+    if profile["longest_unlit_m"] > max_unlit_m + 0.1:
+        return None
+    if avoid_unknown and profile["unknown_lighting_m"] > 0:
+        return None
+    return route, profile
+
+
+def solve_qiea(
+    corridor,
+    *,
+    max_unlit_m=100,
+    max_detour_pct=20,
+    avoid_unknown=False,
+    generations=30,
+    population=24,
+    seed=7,
+):
+    """Binary QIEA: observe amplitudes, evaluate routes, rotate toward the elite."""
+    rng = np.random.default_rng(seed)
+    n = len(corridor.edges)
+    theta = np.full(n, pi / 4)  # |alpha|^2 = |beta|^2 = 0.5
+    best = None
+    best_bits = None
+    evaluated = 0
+
+    for generation in range(generations):
+        probabilities = np.sin(theta) ** 2
+        samples = rng.random((population, n)) < probabilities
+        # Preserve real mapped routes as valid starting chromosomes.
+        for index, bits in enumerate(corridor.seeds[: min(len(corridor.seeds), population)]):
+            samples[index] = bits
+        if best_bits is not None and len(corridor.seeds) < population:
+            samples[len(corridor.seeds)] = best_bits
+
+        for sample in samples:
+            evaluated += 1
+            result = assess(
+                corridor, sample,
+                max_unlit_m=max_unlit_m,
+                max_detour_pct=max_detour_pct,
+                avoid_unknown=avoid_unknown,
+            )
+            if result is not None and (best is None or result[1]["score"] < best[1]["score"]):
+                best = result
+                best_bits = sample.copy()
+
+        if best_bits is not None:
+            # A classical analogue of a qubit rotation gate: move the angle
+            # toward |1> for selected edges and toward |0> for omitted edges.
+            rotation = 0.055 * (1 - generation / max(generations, 1))
+            theta += np.where(best_bits, rotation, -rotation)
+            theta = np.clip(theta, 0.08, pi / 2 - 0.08)
+
+    return best, {"macro_edges": n, "seed_routes": len(corridor.seeds), "evaluations": evaluated}
