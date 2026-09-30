@@ -47,81 +47,101 @@ def address_label(i):
         label += f" — {row['Place name']}"
     return label
 
-st.set_page_config(page_title='Safe Walk', layout='wide')
+st.set_page_config(page_title="Safe Walk", page_icon="🚶", layout="wide")
 st.html("""
 <style>
-    .stay-safe-brand {
-        display: flex;
-        align-items: center;
-        gap: 16px;
-        margin: 8px 0 24px;
-        color: var(--text-color, #173c32);
+    .stApp {
+        background: #ffffff;
+        color: #30233f;
+        --primary-color: #6f4299;
+        --background-color: #ffffff;
+        --secondary-background-color: #eff7fc;
+        --text-color: #30233f;
     }
-    .stay-safe-mark {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        flex: 0 0 64px;
-        height: 64px;
+    [data-testid="stHeader"] { background: #ffffff; }
+    [data-testid="stMainBlockContainer"] { padding-top: 2rem; }
+    [data-testid="stBaseButton-primary"] {
+        background-color: #6f4299;
+        border-color: #6f4299;
+        color: #ffffff;
+    }
+    [data-testid="stBaseButton-primary"]:hover {
+        background-color: #553178;
+        border-color: #553178;
+        color: #ffffff;
+    }
+    [data-baseweb="select"] > div {
+        background-color: #eff7fc;
+        color: #30233f;
+        border-color: #d8cbe8;
+    }
+    [data-testid="stCheckbox"] input { accent-color: #6f4299; }
+    [data-testid="stMetricValue"] { color: #6f4299; }
+    .safe-walk-brand {
+        position: relative;
+        overflow: hidden;
+        background: #65418a;
         border-radius: 20px;
-        background: #173c32;
-        box-shadow: 0 6px 18px rgba(23, 60, 50, 0.15);
+        padding: clamp(28px, 5vw, 48px);
+        margin: 0 0 26px;
+        border-bottom: 5px solid #c9e8f6;
     }
-    .stay-safe-wordmark {
+    .safe-walk-brand::after {
+        content: "";
+        position: absolute;
+        right: -35px;
+        top: -95px;
+        width: 330px;
+        height: 330px;
+        border: 2px solid rgba(201, 232, 246, 0.18);
+        border-radius: 46px;
+        transform: rotate(32deg);
+        box-shadow: 0 0 0 35px rgba(201, 232, 246, 0.06),
+                    0 0 0 70px rgba(201, 232, 246, 0.04);
+        pointer-events: none;
+    }
+    .safe-walk-brand h1 {
+        position: relative;
+        z-index: 1;
         margin: 0;
         padding: 0;
+        color: #ffffff;
         font-family: inherit;
-        font-size: clamp(32px, 6vw, 46px);
+        font-size: clamp(42px, 7vw, 68px);
         font-weight: 800;
         letter-spacing: -1.8px;
-        line-height: 1.1;
+        line-height: 1.12;
     }
-    .stay-safe-wordmark span { color: #369b73; }
-    .stay-safe-tagline {
-        margin: 7px 0 0;
-        font-size: 11px;
-        font-weight: 600;
-        letter-spacing: 2.4px;
-        text-transform: uppercase;
+    .safe-walk-brand h1 span { color: #c9e8f6; }
+    .safe-walk-brand p {
+        position: relative;
+        z-index: 1;
+        margin: 14px 0 0;
+        color: #ffffff;
+        font-size: 16px;
+        line-height: 1.5;
     }
-    .stay-safe-intro {
-        border-top: 1px solid rgba(128, 128, 128, 0.25);
-        padding-top: 22px;
-        margin-bottom: 24px;
-        color: var(--text-color, #173c32);
-    }
-    .stay-safe-intro h2 {
-        margin: 0 0 8px;
+    .safe-walk-intro { margin-bottom: 24px; }
+    .safe-walk-intro h2 {
+        color: #553178;
         padding: 0;
-        font-size: clamp(22px, 4vw, 30px);
-        font-weight: 650;
-        letter-spacing: -0.6px;
-        line-height: 1.25;
+        margin: 0 0 8px;
+        font-size: clamp(22px, 4vw, 28px);
+        letter-spacing: -0.5px;
     }
-    .stay-safe-intro p {
+    .safe-walk-intro p {
         margin: 0;
-        max-width: 620px;
+        max-width: 650px;
+        color: #51455e;
         font-size: 15px;
         line-height: 1.6;
     }
 </style>
-<header class="stay-safe-brand">
-    <div class="stay-safe-mark" aria-hidden="true">
-        <svg width="40" height="40" viewBox="0 0 40 40" fill="none"
-             xmlns="http://www.w3.org/2000/svg">
-            <path d="M10 30V22C10 17 30 23 30 16V10"
-                  stroke="#c5edda" stroke-width="3.5" stroke-linecap="round"/>
-            <circle cx="10" cy="30" r="4" fill="#c5edda"/>
-            <circle cx="30" cy="10" r="5" fill="#ef82aa"/>
-            <circle cx="30" cy="10" r="2" fill="#173c32"/>
-        </svg>
-    </div>
-    <div>
-        <h1 class="stay-safe-wordmark">Stay <span>Safe</span></h1>
-        <p class="stay-safe-tagline">Your walk. Your priorities.</p>
-    </div>
+<header class="safe-walk-brand">
+    <h1>Safe <span>Walk</span></h1>
+    <p>Your walk. Your priorities.</p>
 </header>
-<div class="stay-safe-intro">
+<div class="safe-walk-intro">
     <h2>A better route starts with you.</h2>
     <p>Choose where you’re going and the street conditions that matter most.
     Explore walking routes scored around your priorities.</p>
@@ -382,55 +402,11 @@ if saved is not None and saved['request_key'] == request_key:
     d.metric('Explicitly no sidewalk', f"{profile['missing_sidewalk_m']:.0f} m")
     st.caption('Unknown lighting is counted as unlit. Sidewalk values marked unknown remain unknown.')
 
-    # ── Appearance settings ──────────────────────────────
-
-    MAP_STYLE = "light"       # "light", "dark", "light_no_labels", "dark_no_labels"
-
-    # Layer colours use [red, green, blue, opacity], each from 0–255.
-    ROUTE_COLOR = [194, 24, 91, 255]       # Pink
-    ROUTE_WIDTH = 5                       # Pixels
-    ROUTE_OUTLINE_COLOR = [255, 255, 255, 230]
-    ROUTE_OUTLINE_WIDTH = 9               # Wider than the route
-
-    LABEL_TEXT_COLOR = [255, 255, 255, 255]
-    LABEL_BACKGROUND_COLOR = [22, 135, 65, 245]
-    LABEL_FONT_SIZE = 16
-    LABEL_PADDING = [12, 8]               # Horizontal, vertical
-    LABEL_CORNER_RADIUS = 8
-
-    MAP_ZOOM = 14
-    MAP_PITCH = 0                         # 0 = flat; try 30 for tilt
-    MAP_BEARING = 0                       # Rotation in degrees
-
-    # ── Route ────────────────────────────────────────────
-
-    route_data = line_data(graph, route)
-
-    # Draw a wider line underneath to give the route an outline.
-    route_outline = pdk.Layer(
-        "LineLayer",
-        data=route_data,
-        get_source_position="start",
-        get_target_position="end",
-        get_color=ROUTE_OUTLINE_COLOR,
-        get_width=ROUTE_OUTLINE_WIDTH,
-        width_units="pixels",
-        pickable=False,
-    )
-
     layer = pdk.Layer(
-        "LineLayer",
-        data=route_data,
-        get_source_position="start",
-        get_target_position="end",
-        get_color=ROUTE_COLOR,
-        get_width=ROUTE_WIDTH,
-        width_units="pixels",
-        pickable=False,
+        'LineLayer', line_data(graph, route), get_source_position='start',
+        get_target_position='end', get_color=[111, 66, 153],
+        get_width=5, width_min_pixels=3,
     )
-
-    # ── Safety label ─────────────────────────────────────
-
     middle_node = graph.nodes[route[len(route) // 2]]
 
     score_layer = pdk.Layer(
@@ -444,35 +420,18 @@ if saved is not None and saved['request_key'] == request_key:
         }],
         get_position="position",
         get_text="label",
-        get_size=LABEL_FONT_SIZE,
-        get_color=LABEL_TEXT_COLOR,
-        get_pixel_offset=[0, -30],         # Move label above the route
-        font_family="Arial",
-        font_weight="bold",
+        get_size=20,
+        get_color=[255, 255, 255, 255],
         background=True,
-        get_background_color=LABEL_BACKGROUND_COLOR,
-        background_padding=LABEL_PADDING,
-        background_border_radius=LABEL_CORNER_RADIUS,
+        get_background_color=[85, 49, 120, 245],
+        background_padding=[12, 8],
+        background_border_radius=8,
         pickable=False,
-    )
-
-    # ── Map ──────────────────────────────────────────────
-
-    view = pdk.ViewState(
-        latitude=start_lat,
-        longitude=start_lon,
-        zoom=MAP_ZOOM,
-        pitch=MAP_PITCH,
-        bearing=MAP_BEARING,
-    )
-
+    )    
+    
+    view = pdk.ViewState(latitude=start_lat, longitude=start_lon, zoom=14, pitch=0)
     st.pydeck_chart(
-        pdk.Deck(
-            map_provider="carto",
-            map_style=MAP_STYLE,
-            layers=[route_outline, layer, score_layer],
-            initial_view_state=view,
-        ),
+        pdk.Deck(layers=[layer, score_layer], initial_view_state=view, map_style="light"),
         width="stretch",
     )
 
