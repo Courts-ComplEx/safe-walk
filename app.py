@@ -310,22 +310,22 @@ st.pydeck_chart(
     width="stretch",
 )
 
-    with st.expander('How the tensor network chose this route'):
-        st.write(
-            'Each binary variable selects a chain of mapped walking streets. An energy function adds '
-            'street condition scores based on your selected priorities and penalises broken route connections. '
-            'Unknown lighting and sidewalks are treated as "unlit" and "no sidewalk", resepctively. '
-            'The energy is stored as a matrix product operator (MPO). DMRG optimises '
-            'a matrix product state (MPS) toward low energy routes. Sampled routes are decoded, '
-            'checked against a fixed detour limit, and ranked by mapped route score.'
-        )
-        st.write(
-            f"This run used **{stats['choices']} binary street-chain choices**, "
-            f"an MPS bond dimension of **{stats['mps_bond_dimension']}**, and checked "
-            f"**{stats['unique_candidates_checked']} distinct route selections**. "
-            f"It found **{stats['valid_routes_found']} distinct valid routes**."
-        )
-        st.caption('This is an approximate classical tensor-network method. It does not use a quantum computer or guarantee a globally optimal route.')
+with st.expander('How the tensor network chose this route'):
+    st.write(
+        'Each binary variable selects a chain of mapped walking streets. An energy function adds '
+        'street condition scores based on your selected priorities and penalises broken route connections. '
+        'Unknown lighting and sidewalks are treated as "unlit" and "no sidewalk", resepctively. '
+        'The energy is stored as a matrix product operator (MPO). DMRG optimises '
+        'a matrix product state (MPS) toward low energy routes. Sampled routes are decoded, '
+        'checked against a fixed detour limit, and ranked by mapped route score.'
+    )
+    st.write(
+        f"This run used **{stats['choices']} binary street-chain choices**, "
+        f"an MPS bond dimension of **{stats['mps_bond_dimension']}**, and checked "
+        f"**{stats['unique_candidates_checked']} distinct route selections**. "
+        f"It found **{stats['valid_routes_found']} distinct valid routes**."
+    )
+    st.caption('This is an approximate classical tensor-network method. It does not use a quantum computer or guarantee a globally optimal route.')
 
 st.write('Scores describe mapped street conditions, not the likelihood of crime or GBV. Use your own judgement and local knowledge when walking.')
 st.caption('© OpenStreetMap contributors. Segment lighting and sidewalk edits come from saved street data. Road class is a traffic proxy, not a traffic count.')
