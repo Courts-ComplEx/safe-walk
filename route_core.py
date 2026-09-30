@@ -72,8 +72,8 @@ def street_conditions(data):
 def edge_score(data, *, weights=None):
     """Additive route cost; lower is preferred and weights set user priorities."""
     w = weights or {
-        "distance": 1.0, "unlit": 3.0, "unknown_lighting": 1.5,
-        "no_sidewalk": 3.0, "unknown_sidewalk": 1.0, "traffic": 2.0,
+        "distance": 0.2, "unlit": 2.0, "unknown_lighting": 1.0,
+        "no_sidewalk": 2.0, "unknown_sidewalk": 1.0, "traffic": 0.0,
     }
     length = float(data.get("length", 0.0))
     lighting, pavement, traffic = street_conditions(data)
