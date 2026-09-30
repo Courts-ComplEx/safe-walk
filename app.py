@@ -45,85 +45,9 @@ def address_label(i):
     return f"{label}"
 
 st.set_page_config(page_title='Stay Safe', layout='wide')
-st.html("""
-<style>
-    .stay-safe-brand {
-        display: flex;
-        align-items: center;
-        gap: 16px;
-        margin: 8px 0 24px;
-        color: var(--text-color, #173c32);
-    }
-    .stay-safe-mark {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        flex: 0 0 64px;
-        height: 64px;
-        border-radius: 20px;
-        background: #173c32;
-        box-shadow: 0 6px 18px rgba(23, 60, 50, 0.15);
-    }
-    .stay-safe-wordmark {
-        margin: 0;
-        padding: 0;
-        font-family: inherit;
-        font-size: clamp(32px, 6vw, 46px);
-        font-weight: 800;
-        letter-spacing: -1.8px;
-        line-height: 1.1;
-    }
-    .stay-safe-wordmark span { color: #369b73; }
-    .stay-safe-tagline {
-        margin: 7px 0 0;
-        font-size: 11px;
-        font-weight: 600;
-        letter-spacing: 2.4px;
-        text-transform: uppercase;
-    }
-    .stay-safe-intro {
-        border-top: 1px solid rgba(128, 128, 128, 0.25);
-        padding-top: 22px;
-        margin-bottom: 24px;
-        color: var(--text-color, #173c32);
-    }
-    .stay-safe-intro h2 {
-        margin: 0 0 8px;
-        padding: 0;
-        font-size: clamp(22px, 4vw, 30px);
-        font-weight: 650;
-        letter-spacing: -0.6px;
-        line-height: 1.25;
-    }
-    .stay-safe-intro p {
-        margin: 0;
-        max-width: 620px;
-        font-size: 15px;
-        line-height: 1.6;
-    }
-</style>
-<header class="stay-safe-brand">
-    <div class="stay-safe-mark" aria-hidden="true">
-        <svg width="40" height="40" viewBox="0 0 40 40" fill="none"
-             xmlns="http://www.w3.org/2000/svg">
-            <path d="M10 30V22C10 17 30 23 30 16V10"
-                  stroke="#c5edda" stroke-width="3.5" stroke-linecap="round"/>
-            <circle cx="10" cy="30" r="4" fill="#c5edda"/>
-            <circle cx="30" cy="10" r="5" fill="#ef82aa"/>
-            <circle cx="30" cy="10" r="2" fill="#173c32"/>
-        </svg>
-    </div>
-    <div>
-        <h1 class="stay-safe-wordmark">Stay <span>Safe</span></h1>
-        <p class="stay-safe-tagline">Your walk. Your priorities.</p>
-    </div>
-</header>
-<div class="stay-safe-intro">
-    <h2>A better route starts with you.</h2>
-    <p>Choose where you’re going and the street conditions that matter most.
-    Explore walking routes scored around your priorities.</p>
-</div>
-""")
+st.title("Stay Safe")
+st.header("Choose the route that is **safest** for you")
+st.write('Choose the street conditions that matter to you. A quantum-inspired tensor-network optimiser searches for routes using the saved walking map.')
 
 start_i = st.selectbox(
     "Where from? (current location)",
@@ -292,55 +216,11 @@ if saved is not None and saved['request_key'] == request_key:
     d.metric('Explicitly no sidewalk', f"{profile['missing_sidewalk_m']:.0f} m")
     st.caption('Unknown lighting is counted as unlit. Sidewalk values marked unknown remain unknown.')
 
-    # ── Appearance settings ──────────────────────────────
-
-    MAP_STYLE = "light"       # "light", "dark", "light_no_labels", "dark_no_labels"
-
-    # Layer colours use [red, green, blue, opacity], each from 0–255.
-    ROUTE_COLOR = [194, 24, 91, 255]       # Pink
-    ROUTE_WIDTH = 5                       # Pixels
-    ROUTE_OUTLINE_COLOR = [255, 255, 255, 230]
-    ROUTE_OUTLINE_WIDTH = 9               # Wider than the route
-
-    LABEL_TEXT_COLOR = [255, 255, 255, 255]
-    LABEL_BACKGROUND_COLOR = [22, 135, 65, 245]
-    LABEL_FONT_SIZE = 16
-    LABEL_PADDING = [12, 8]               # Horizontal, vertical
-    LABEL_CORNER_RADIUS = 8
-
-    MAP_ZOOM = 14
-    MAP_PITCH = 0                         # 0 = flat; try 30 for tilt
-    MAP_BEARING = 0                       # Rotation in degrees
-
-    # ── Route ────────────────────────────────────────────
-
-    route_data = line_data(graph, route)
-
-    # Draw a wider line underneath to give the route an outline.
-    route_outline = pdk.Layer(
-        "LineLayer",
-        data=route_data,
-        get_source_position="start",
-        get_target_position="end",
-        get_color=ROUTE_OUTLINE_COLOR,
-        get_width=ROUTE_OUTLINE_WIDTH,
-        width_units="pixels",
-        pickable=False,
-    )
-
     layer = pdk.Layer(
-        "LineLayer",
-        data=route_data,
-        get_source_position="start",
-        get_target_position="end",
-        get_color=ROUTE_COLOR,
-        get_width=ROUTE_WIDTH,
-        width_units="pixels",
-        pickable=False,
+        'LineLayer', line_data(graph, route), get_source_position='start',
+        get_target_position='end', get_color=[194, 24, 91],
+        get_width=5, width_min_pixels=3,
     )
-
-    # ── Safety label ─────────────────────────────────────
-
     middle_node = graph.nodes[route[len(route) // 2]]
 
     score_layer = pdk.Layer(
@@ -354,43 +234,26 @@ if saved is not None and saved['request_key'] == request_key:
         }],
         get_position="position",
         get_text="label",
-        get_size=LABEL_FONT_SIZE,
-        get_color=LABEL_TEXT_COLOR,
-        get_pixel_offset=[0, -30],         # Move label above the route
-        font_family="Arial",
-        font_weight="bold",
+        get_size=20,
+        get_color=[255, 255, 255, 255],
         background=True,
-        get_background_color=LABEL_BACKGROUND_COLOR,
-        background_padding=LABEL_PADDING,
-        background_border_radius=LABEL_CORNER_RADIUS,
+        get_background_color=[22, 135, 65, 245],
+        background_padding=[12, 8],
+        background_border_radius=8,
         pickable=False,
-    )
-
-    # ── Map ──────────────────────────────────────────────
-
-    view = pdk.ViewState(
-        latitude=start_lat,
-        longitude=start_lon,
-        zoom=MAP_ZOOM,
-        pitch=MAP_PITCH,
-        bearing=MAP_BEARING,
-    )
-
+    )    
+    
+    view = pdk.ViewState(latitude=start_lat, longitude=start_lon, zoom=14, pitch=0)
     st.pydeck_chart(
-        pdk.Deck(
-            map_provider="carto",
-            map_style=MAP_STYLE,
-            layers=[route_outline, layer, score_layer],
-            initial_view_state=view,
-        ),
+        pdk.Deck(layers=[layer, score_layer], initial_view_state=view),
         width="stretch",
     )
 
     with st.expander('How the tensor network chose this route'):
         st.write(
             'Each binary variable selects a chain of mapped walking streets. An energy function adds '
-            'street condition scores based on your selected priorities and penalises broken route connections. '
-            'Unknown lighting and sidewalks are treated as "unlit" and "no sidewalk", resepctively. '
+            'street condition scores based on your selected priorities and strong penalties for broken route connections. '
+            'Unknown lighting is treated as unlit. '
             'The energy is stored as a matrix product operator (MPO). DMRG optimises '
             'a matrix product state (MPS) toward low energy routes. Sampled routes are decoded, '
             'checked against a fixed detour limit, and ranked by mapped route score.'
@@ -403,5 +266,5 @@ if saved is not None and saved['request_key'] == request_key:
         )
         st.caption('This is an approximate classical tensor-network method. It does not use a quantum computer or guarantee a globally optimal route.')
 
-st.write('Scores describe mapped street conditions, not the likelihood of crime or GBV. Use your own judgement and local knowledge when walking.')
-st.caption('© OpenStreetMap contributors. Segment lighting and sidewalk edits come from saved street data. Road class is a traffic proxy, not a traffic count.')
+st.write('NB: scores describe mapped street conditions, not the likelihood of crime or GBV. Use your own judgement and local knowledge when walking.')
+st.caption('© OpenStreetMap contributors. Segment lighting and sidewalk edits come from the saved Excel workbook. Road class is a traffic proxy, not a traffic count.')
