@@ -47,7 +47,7 @@ def address_label(i):
         label += f" — {row['Place name']}"
     return label
 
-st.set_page_config(page_title='Stay Safe', layout='wide')
+st.set_page_config(page_title='Safe Walk', layout='wide')
 st.html("""
 <style>
     .stay-safe-brand {
